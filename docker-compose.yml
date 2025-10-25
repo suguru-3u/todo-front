@@ -1,0 +1,10 @@
+services:
+  frontend:
+    image: nginx:alpine
+    volumes:
+      # Nginx設定ファイルをマウント
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # 静的ファイルをマウント
+      - ./dist:/usr/share/nginx/html:ro
+    ports:
+      - '4000:80'
