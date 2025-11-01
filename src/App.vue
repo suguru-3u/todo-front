@@ -1,39 +1,93 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeMount } from 'vue'
 
-interface Todo {
+interface TodoItem {
   id: number
   text: string
   completed: boolean
 }
 
-const todos = ref<Todo[]>([
-  { id: 1, text: 'Vue 3とTSの学習', completed: false },
-  { id: 2, text: 'TODOアプリの作成', completed: true },
-])
+const todos = ref<TodoItem[]>([])
 
 const newTaskText = ref<string>('')
 
-const addTask = (): void => {
+const addTask = async (): Promise<void> => {
   const text = newTaskText.value.trim()
   if (!text) return
 
-  todos.value.push({
-    id: Date.now(),
-    text: text,
-    completed: false,
-  })
+  try {
+    const response = await fetch('/api/todo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: text, completed: false }),
+    })
+    if (response.ok) {
+      loadTodos()
+    }
+  } catch (error) {
+    console.error('エラーが発生しました:', error)
+  }
 
   newTaskText.value = ''
 }
 
-const removeTask = (id: number): void => {
-  todos.value = todos.value.filter((todo) => todo.id !== id)
+const removeTask = async (id: number): Promise<void> => {
+  try {
+    const response = await fetch(`/api/todo/${id}`, {
+      method: 'DELETE',
+    })
+    if (response.ok) {
+      loadTodos()
+    }
+  } catch (error) {
+    console.error('エラーが発生しました:', error)
+  }
+}
+
+const changeCompletionStatus = async (id: number): Promise<void> => {
+  const targetTodo = todos.value.find((todo) => todo.id === id)
+  if (!targetTodo) return
+  const text = targetTodo.text
+  const completed = targetTodo.completed
+
+  try {
+    const response = await fetch(`/api/todo/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: text, completed: completed }),
+    })
+    if (response.ok) {
+      await loadTodos()
+    }
+  } catch (error) {
+    console.error('エラーが発生しました:', error)
+  }
 }
 
 const incompleteCount = computed<number>(() => {
   return todos.value.filter((todo) => !todo.completed).length
 })
+
+onBeforeMount(async () => {
+  console.log('TODOアプリがマウントされました。')
+  await loadTodos()
+})
+
+const loadTodos = async () => {
+  try {
+    const response = await fetch('/api/todos', { method: 'GET' })
+    if (response.ok) {
+      const data = await response.json()
+      todos.value = data
+    }
+  } catch (error) {
+    console.error('エラーが発生しました:', error)
+  }
+}
 </script>
 
 <template>
@@ -59,7 +113,11 @@ const incompleteCount = computed<number>(() => {
 
       <ul>
         <li v-for="todo in todos" :key="todo.id" :class="{ completed: todo.completed }">
-          <input type="checkbox" v-model="todo.completed" />
+          <input
+            type="checkbox"
+            v-model="todo.completed"
+            @change="changeCompletionStatus(todo.id)"
+          />
           <span class="todo-text">{{ todo.text }}</span>
           <button @click="removeTask(todo.id)">削除</button>
         </li>
