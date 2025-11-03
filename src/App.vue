@@ -21,7 +21,7 @@ const addTask = async (): Promise<void> => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: text, completed: false }),
+      body: JSON.stringify({ text: text}),
     })
     if (response.ok) {
       loadTodos()
