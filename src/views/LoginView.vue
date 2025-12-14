@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const username = ref('')
 const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
+
+const authStore = useAuthStore()
 
 const handleLogin = async () => {
   if (!username.value || !password.value) return
@@ -22,10 +28,14 @@ const handleLogin = async () => {
       }),
     })
 
+    console.log(response)
+
     if (response.ok) {
       // セッションCookieはブラウザが自動で保存します
       // ログイン成功後、TODOリスト画面へ
-      window.location.href = '/'
+      console.log('ログイン成功')
+      authStore.setAuth()
+      router.push('/todo')
     } else {
       errorMessage.value = 'ログインに失敗しました。ユーザー名かパスワードを確認してください。'
     }
